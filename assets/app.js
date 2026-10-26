@@ -1,24 +1,118 @@
-const API_BASE = (window.THANOS_API_BASE || "").replace(/\/$/, "");
-const seed = {courses:[
-{id:"mbbs",name:"MBBS",description:"Bachelor of Medicine and Bachelor of Surgery",years:[]},
-{id:"bds",name:"BDS",description:"Bachelor of Dental Surgery",years:[]},
-{id:"other",name:"OTHER",description:"Other learning programmes",years:[]}
-]};
-let data=seed, path=[];
-async function loadData(){try{const r=await fetch(API_BASE+"/api/data");if(!r.ok)throw Error();data=await r.json();if(!data.courses)data=seed}catch(e){data=seed}}
-const el=id=>document.getElementById(id);
-function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function idName(x){return x?.name||""}
-function renderCourses(){const grid=el("course-grid");el("course-count").textContent=`${data.courses.length} courses`;grid.innerHTML=data.courses.length?data.courses.map((c,i)=>`<button class="course-card" data-course="${esc(c.id)}"><div class="course-icon">${["✚","✦","▤"][i%3]}</div><h3>${esc(c.name)}</h3><p>${esc(c.description||"Explore subjects, chapters and lectures.")}</p><div class="card-bottom"><span>${(c.years||[]).length} years available</span><span>Explore →</span></div></button>`).join(""):`<div class="empty">No courses have been published yet.</div>`;grid.querySelectorAll("[data-course]").forEach(b=>b.onclick=()=>{path=[b.dataset.course];renderContent()});}
-function find(){let c=data.courses.find(x=>x.id===path[0]),y=c?.years?.find(x=>x.id===path[1]),s=y?.subjects?.find(x=>x.id===path[2]),ch=s?.chapters?.find(x=>x.id===path[3]);return {c,y,s,ch}}
-function renderContent(){const {c,y,s,ch}=find();el("learning-area").classList.remove("hidden");el("course-grid").classList.add("hidden");el("breadcrumb").textContent=[c?.name,y?.name,s?.name,ch?.name].filter(Boolean).join("  /  ");const heading=el("current-heading"),grid=el("content-grid");let items=[],level="";
-if(!y){heading.textContent="Choose a year";items=(c?.years||[]).map(x=>({item:x,meta:`${(x.subjects||[]).length} subjects`,level:"year"}));}
-else if(!s){heading.textContent="Subjects";items=(y.subjects||[]).map(x=>({item:x,meta:`${(x.chapters||[]).length} chapters`,level:"subject"}));}
-else if(!ch){heading.textContent="Chapters";items=(s.chapters||[]).map(x=>({item:x,meta:`${(x.lectures||[]).filter(isVisible).length} lectures`,level:"chapter"}));}
-else{heading.textContent="Lectures";items=(ch.lectures||[]).filter(isVisible).map(x=>({item:x,meta:x.description||"",level:"lecture"}));}
-if(!items.length){grid.innerHTML='<div class="empty">Content will appear here once the admin adds it.</div>';return}
-grid.innerHTML=items.map(({item,meta,level:l})=>l==="lecture"?`<article class="lecture-item">${item.thumbnail?`<img class="lecture-thumb" src="${esc(item.thumbnail)}" alt="">`:'<div class="lecture-thumb"></div>'}<div><h3>${esc(item.title)}</h3><p class="muted">${esc(meta)}</p><div class="lecture-links">${item.videoUrl?`<a href="${esc(item.videoUrl)}" target="_blank" rel="noopener">▶ Watch video</a>`:""}${item.pdfUrl?`<a href="${esc(item.pdfUrl)}" target="_blank" rel="noopener">↓ PDF</a>`:""}${item.notesUrl?`<a href="${esc(item.notesUrl)}" target="_blank" rel="noopener">Notes</a>`:""}</div></div></article>`:`<button class="content-card" data-next="${esc(item.id)}"><h3>${esc(item.name)}</h3><p>${esc(meta)}</p><span class="arrow">Open →</span></button>`).join("");
-grid.querySelectorAll("[data-next]").forEach(b=>b.onclick=()=>{path.push(b.dataset.next);renderContent()});}
-function isVisible(l){if(l.status==="draft")return false;const date=l.scheduleAt||"";if(l.status==="scheduled"&&date&&new Date(date)>new Date())return false;if(date&&new Date(date)>new Date())return false;return true}
-el("back-btn").onclick=()=>{if(path.length)path.pop();if(!path.length){el("learning-area").classList.add("hidden");el("course-grid").classList.remove("hidden")}else renderContent()};
-(async()=>{await loadData();renderCourses()})();
+const API_BASE = "https://thanos-api.molkitofficial.workers.dev".replace(/\/$/, "");
+const dataSeed = {
+  courses: [
+    { id: "mbbs", name: "MBBS", description: "Bachelor of Medicine and Bachelor of Surgery", years: [] },
+    { id: "bds", name: "BDS", description: "Bachelor of Dental Surgery", years: [] },
+    { id: "other", name: "OTHER", description: "Other learning programmes", years: [] }
+  ]
+};
+
+let data = structuredClone(dataSeed);
+
+async function loadData() {
+  try {
+    const response = await fetch(`${API_BASE}/api/data`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`API returned ${response.status}`);
+    const incoming = await response.json();
+    if (incoming && Array.isArray(incoming.courses)) data = incoming;
+  } catch (error) {
+    console.error("Thanos API load failed:", error);
+    data = structuredClone(dataSeed);
+  }
+}
+
+function byId(id) { return document.getElementById(id); }
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[c]);
+}
+
+function renderCourses() {
+  const grid = byId("course-grid");
+  if (!grid) return;
+  const heading = byId("page-title");
+  const count = byId("course-count");
+  const area = byId("learning-area");
+  const back = byId("back-btn");
+
+  if (heading) heading.textContent = "Choose your course";
+  if (count) count.textContent = `${data.courses.length} courses`;
+  if (area) area.classList.add("hidden");
+
+  grid.innerHTML = data.courses.map((course, i) => `
+    <button class="course-card" type="button" data-course="${i}">
+      <span class="course-card__icon">${course.name === "MBBS" ? "✚" : course.name === "BDS" ? "✦" : "▣"}</span>
+      <span class="course-card__title">${esc(course.name)}</span>
+      <span class="course-card__description">${esc(course.description || "")}</span>
+      <span class="course-card__arrow">Explore →</span>
+    </button>`).join("");
+
+  grid.querySelectorAll("[data-course]").forEach(btn => {
+    btn.addEventListener("click", () => renderYears(data.courses[Number(btn.dataset.course)]));
+  });
+  if (back) back.onclick = renderCourses;
+}
+
+function showGrid(title, items, countText, onClick, backAction) {
+  const grid = byId("course-grid");
+  if (!grid) return;
+  const heading = byId("page-title");
+  const count = byId("course-count");
+  const area = byId("learning-area");
+  const back = byId("back-btn");
+  if (heading) heading.textContent = title;
+  if (count) count.textContent = countText;
+  if (area) area.classList.remove("hidden");
+
+  grid.innerHTML = items.length ? items.map((item, i) => `
+    <button class="course-card" type="button" data-item="${i}">
+      <span class="course-card__icon">${esc(item.icon || "▤")}</span>
+      <span class="course-card__title">${esc(item.title || item.name || `Item ${i + 1}`)}</span>
+      <span class="course-card__description">${esc(item.description || "")}</span>
+      <span class="course-card__arrow">Open →</span>
+    </button>`).join("") : `<p class="empty-state">${esc(items.emptyMessage || "Nothing has been added here yet.")}</p>`;
+
+  grid.querySelectorAll("[data-item]").forEach(btn => btn.addEventListener("click", () => onClick(items[Number(btn.dataset.item)])));
+  if (back) back.onclick = backAction || renderCourses;
+}
+
+function renderYears(course) {
+  const years = (course.years || []).map(y => ({ ...y, title: y.name || y.title || "Year", description: `${(y.subjects || []).length} subjects`, icon: "▤" }));
+  showGrid(course.name, years, `${years.length} years`, year => renderSubjects(course, year), renderCourses);
+}
+function renderSubjects(course, year) {
+  const subjects = (year.subjects || []).map(s => ({ ...s, title: s.name || s.title || "Subject", description: `${(s.chapters || []).length} chapters`, icon: "▧" }));
+  showGrid(`${course.name} / ${year.name || year.title || "Year"}`, subjects, `${subjects.length} subjects`, subject => renderChapters(course, year, subject), () => renderYears(course));
+}
+function renderChapters(course, year, subject) {
+  const chapters = (subject.chapters || []).map(c => ({ ...c, title: c.name || c.title || "Chapter", description: `${(c.lectures || []).length} lectures`, icon: "▤" }));
+  showGrid(`${subject.name || subject.title || "Subject"} / Chapters`, chapters, `${chapters.length} chapters`, chapter => renderLectures(course, year, subject, chapter), () => renderSubjects(course, year));
+}
+function renderLectures(course, year, subject, chapter) {
+  const grid = byId("course-grid");
+  if (!grid) return;
+  const heading = byId("page-title");
+  const count = byId("course-count");
+  const area = byId("learning-area");
+  const back = byId("back-btn");
+  const lectures = (chapter.lectures || []).filter(l => l.status !== "draft" && (!l.publishDate || new Date(l.publishDate) <= new Date()));
+  if (heading) heading.textContent = `${chapter.name || chapter.title || "Chapter"} / Lectures`;
+  if (count) count.textContent = `${lectures.length} lectures`;
+  if (area) area.classList.remove("hidden");
+  grid.innerHTML = lectures.length ? lectures.map(l => `
+    <article class="course-card lecture-card">
+      ${l.thumbnail ? `<img class="lecture-thumbnail" src="${esc(l.thumbnail)}" alt="">` : ""}
+      <span class="course-card__title">${esc(l.title || l.name || "Lecture")}</span>
+      ${l.notes ? `<p class="course-card__description">${esc(l.notes)}</p>` : ""}
+      <div class="lecture-actions">
+        ${(l.videoUrl || l.video) ? `<a class="course-card__arrow" href="${esc(l.videoUrl || l.video)}" target="_blank" rel="noopener noreferrer">Watch lecture →</a>` : ""}
+        ${(l.pdfUrl || l.pdf) ? `<a class="course-card__arrow" href="${esc(l.pdfUrl || l.pdf)}" target="_blank" rel="noopener noreferrer">Open PDF →</a>` : ""}
+      </div>
+    </article>`).join("") : `<p class="empty-state">No published lectures are available yet.</p>`;
+  if (back) back.onclick = () => renderChapters(course, year, subject);
+}
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadData();
+  renderCourses();
+});
