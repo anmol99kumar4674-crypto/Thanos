@@ -70,12 +70,15 @@ function showDashboard() {
 $("login-form").onsubmit = async event => {
   event.preventDefault();
   const candidate = $("admin-key").value.trim();
-  $("login-msg").textContent = "Connecting…";
+  const button = $("login-form").querySelector('button[type="submit"]');
+  const originalText = button ? button.textContent : "Open Admin Panel";
+  $("login-msg").textContent = "Connecting to Cloudflare…";
+  if (button) { button.disabled = true; button.textContent = "Connecting…"; }
   try {
-    // Validate the key by writing back the exact current data; an invalid key is rejected by the Worker.
+    // Validate the key without rewriting the database content.
+    await request("/api/auth", { method: "POST", body: JSON.stringify({ check: true }) }, candidate);
     const current = await request("/api/data", {}, "");
-    if (!current || !Array.isArray(current.courses)) throw new Error("Invalid API data");
-    await request("/api/data", { method: "PUT", body: JSON.stringify(current) }, candidate);
+    if (!current || !Array.isArray(current.courses)) throw new Error("API से सही course data नहीं मिला।");
     key = candidate;
     data = current;
     sessionStorage.setItem("thanos_admin_key", key);
@@ -84,9 +87,12 @@ $("login-form").onsubmit = async event => {
     $("login-msg").textContent = "";
   } catch (error) {
     key = "";
+    sessionStorage.removeItem("thanos_admin_key");
     $("login-msg").textContent = /Unauthorized/i.test(error.message)
-      ? "Admin Key गलत है। Cloudflare में सेव की गई ADMIN_KEY डालें।"
-      : `कनेक्शन नहीं हुआ: ${error.message}`;
+      ? "Admin Key गलत है। Cloudflare Worker में सेट की गई ADMIN_KEY ही डालें।"
+      : `Login नहीं हुआ: ${error.message}. Cloudflare Worker का नया code deploy हुआ है या नहीं, जाँचें।`;
+  } finally {
+    if (button) { button.disabled = false; button.textContent = originalText; }
   }
 };
 
@@ -319,16 +325,16 @@ $("lecture-form").onsubmit = async event => {
 (async () => {
   if (key) {
     try {
-      // Re-check the stored key against the protected write endpoint without changing the stored data.
-      const current = await request("/api/data", {}, "");
-      await request("/api/data", { method: "PUT", body: JSON.stringify(current) }, key);
-      data = current;
+      await request("/api/auth", { method: "POST", body: JSON.stringify({ check: true }) }, key);
+      data = await request("/api/data", {}, "");
+      if (!data || !Array.isArray(data.courses)) throw new Error("Invalid API data");
       showDashboard();
       renderAll();
     } catch {
       key = "";
       sessionStorage.removeItem("thanos_admin_key");
       showLogin();
+      $("login-msg").textContent = "Session expire हो गया। Admin Key दोबारा डालें।";
     }
   } else {
     showLogin();
