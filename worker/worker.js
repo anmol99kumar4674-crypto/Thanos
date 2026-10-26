@@ -25,6 +25,13 @@ export default {
      "access-control-allow-origin":origin,"access-control-allow-methods":"GET,PUT,OPTIONS",
      "access-control-allow-headers":"Content-Type,X-Admin-Key","access-control-max-age":"86400"
    }});
+   // Admin login validation endpoint. It checks the secret without modifying D1 data.
+   if (url.pathname === "/api/auth") {
+     if (request.method !== "POST") return json({error:"Method not allowed"},405,origin);
+     if (!env.ADMIN_KEY || request.headers.get("X-Admin-Key") !== env.ADMIN_KEY)
+       return json({error:"Unauthorized admin key"},401,origin);
+     return json({ok:true},200,origin);
+   }
    if (url.pathname !== "/api/data") return json({error:"Not found"},404,origin);
    if (!env.DB) return json({error:"D1 database binding DB is not configured"},500,origin);
    if (request.method === "GET") {
