@@ -70,23 +70,12 @@ function showDashboard() {
 $("login-form").onsubmit = async event => {
   event.preventDefault();
   const candidate = $("admin-key").value.trim();
-  const button = $("login-form").querySelector('button[type="submit"]');
-  const originalText = button ? button.textContent : "Open Admin Panel";
   $("login-msg").textContent = "Connecting…";
-  if (button) { button.disabled = true; button.textContent = "Connecting…"; }
-
   try {
-    // The deployed Worker supports GET/PUT /api/data, not POST /api/auth.
-    // Read existing data first, then authenticate by sending the unchanged data with the candidate key.
+    // Validate the key by writing back the exact current data; an invalid key is rejected by the Worker.
     const current = await request("/api/data", {}, "");
-    if (!current || !Array.isArray(current.courses)) {
-      throw new Error("API से सही course data नहीं मिला");
-    }
-    await request("/api/data", {
-      method: "PUT",
-      body: JSON.stringify(current)
-    }, candidate);
-
+    if (!current || !Array.isArray(current.courses)) throw new Error("Invalid API data");
+    await request("/api/data", { method: "PUT", body: JSON.stringify(current) }, candidate);
     key = candidate;
     data = current;
     sessionStorage.setItem("thanos_admin_key", key);
@@ -95,13 +84,9 @@ $("login-form").onsubmit = async event => {
     $("login-msg").textContent = "";
   } catch (error) {
     key = "";
-    sessionStorage.removeItem("thanos_admin_key");
-    const msg = /Unauthorized/i.test(error.message)
-      ? "Admin Key गलत है। Cloudflare Worker के ADMIN_KEY secret से मिलान करें।"
-      : "Login नहीं हुआ: " + error.message;
-    $("login-msg").textContent = msg;
-  } finally {
-    if (button) { button.disabled = false; button.textContent = originalText; }
+    $("login-msg").textContent = /Unauthorized/i.test(error.message)
+      ? "Admin Key गलत है। Cloudflare में सेव की गई ADMIN_KEY डालें।"
+      : `कनेक्शन नहीं हुआ: ${error.message}`;
   }
 };
 
@@ -248,8 +233,17 @@ function renderManageLists() {
 function renderLectures() {
   const search = $("lecture-search").value.toLowerCase();
   let rows = [];
-  data.courses.forEach(c => (c.years || []).forEach(y => (y.subjects || []).forEach(s =>
-    (s.chapters || []).forEach(ch => (ch.lectures || []).forEach(l => rows.push({ c, y, s, ch, l })))));
+  for (const c of (data.courses || [])) {
+    for (const y of (c.years || [])) {
+      for (const s of (y.subjects || [])) {
+        for (const ch of (s.chapters || [])) {
+          for (const l of (ch.lectures || [])) {
+            rows.push({ c, y, s, ch, l });
+          }
+        }
+      }
+    }
+  }
   rows = rows.filter(x => `${x.l.title} ${x.c.name} ${x.s.name} ${x.ch.name}`.toLowerCase().includes(search));
   $("lecture-list").innerHTML = rows.length ? rows.map(({ c, y, s, ch, l }) => `
     <div class="lecture-admin-row">
