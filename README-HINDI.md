@@ -22,7 +22,7 @@ Frontend और API अलग origins पर हों तो `assets/app.js` �
 1. GitHub पर इस folder के files upload करें।
 2. Cloudflare Dashboard में D1 database बनाएं, नाम `thanos-db` रख सकते हैं।
 3. D1 Console में `worker/schema.sql` का SQL चलाएं।
-4. Worker बनाकर `worker/worker.js` deploy करें। Login के लिए `/api/auth` endpoint वाला नया Worker code भी deploy करना ज़रूरी है।
+4. Worker बनाकर `worker/worker.js` deploy करें।
 5. Worker settings में D1 binding जोड़ें: variable name `DB`, अपनी बनाई database चुनें।
 6. Worker Secrets में `ADMIN_KEY` नाम का मजबूत, अलग admin key सेट करें।
 7. Variable `CORS_ORIGIN` को frontend के exact origin पर सेट करें, जैसे `https://thanos.pages.dev`। Custom domain हो तो उसी domain का origin रखें।
