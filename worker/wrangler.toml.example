@@ -1,0 +1,12 @@
+name = "thanos-api"
+main = "worker.js"
+compatibility_date = "2026-10-26"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "thanos-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+[vars]
+# Set this to your frontend origin, e.g. https://your-site.pages.dev
+CORS_ORIGIN = "https://YOUR-FRONTEND.pages.dev"
