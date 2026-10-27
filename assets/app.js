@@ -49,7 +49,7 @@ function renderCourses() {
     </button>`).join("");
 
   grid.querySelectorAll("[data-course]").forEach(btn => {
-    btn.addEventListener("click", () => renderYears(data.courses[Number(btn.dataset.course)]));
+    btn.addEventListener("click", () => { pushLibraryHistory(); renderYears(data.courses[Number(btn.dataset.course)]); });
   });
   if (back) back.onclick = renderCourses;
 }
@@ -73,7 +73,7 @@ function showGrid(title, items, countText, onClick, backAction) {
       <span class="course-card__arrow">Open →</span>
     </button>`).join("") : `<p class="empty-state">${esc(items.emptyMessage || "Nothing has been added here yet.")}</p>`;
 
-  grid.querySelectorAll("[data-item]").forEach(btn => btn.addEventListener("click", () => onClick(items[Number(btn.dataset.item)])));
+  grid.querySelectorAll("[data-item]").forEach(btn => btn.addEventListener("click", () => { pushLibraryHistory(); onClick(items[Number(btn.dataset.item)]); }));
   if (back) back.onclick = backAction || renderCourses;
 }
 
@@ -112,6 +112,25 @@ function renderLectures(course, year, subject, chapter) {
     </article>`).join("") : `<p class="empty-state">No published lectures are available yet.</p>`;
   if (back) back.onclick = () => renderChapters(course, year, subject);
 }
+
+// Keep course/year/subject/chapter navigation inside the site history.
+function pushLibraryHistory() {
+  try {
+    history.pushState({ thanosLibraryLevel: true }, "", location.href);
+  } catch (error) {
+    console.warn("Browser history is unavailable", error);
+  }
+}
+window.addEventListener("popstate", event => {
+  // Browser Back goes one level up in the learning hierarchy, not straight out of the site.
+  const back = byId("back-btn");
+  if (back && !byId("learning-area")?.classList.contains("hidden")) {
+    back.click();
+  } else {
+    renderCourses();
+  }
+});
+
 document.addEventListener("DOMContentLoaded", async () => {
   await loadData();
   renderCourses();
