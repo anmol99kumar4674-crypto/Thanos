@@ -14,11 +14,23 @@ async function loadData() {
     const response = await fetch(`${API_BASE}/api/data`, { cache: "no-store" });
     if (!response.ok) throw new Error(`API returned ${response.status}`);
     const incoming = await response.json();
-    if (incoming && Array.isArray(incoming.courses)) data = incoming;
+    if (incoming && Array.isArray(incoming.courses)) data = normalizeTeacherHierarchy(incoming);
   } catch (error) {
     console.error("Thanos API load failed:", error);
     data = structuredClone(dataSeed);
   }
+}
+
+
+function normalizeTeacherHierarchy(payload) {
+  (payload.courses || []).forEach(c => (c.years || []).forEach(y => (y.subjects || []).forEach(s => {
+    s.teachers ||= [];
+    if ((s.chapters || []).length) {
+      s.teachers.unshift({ id: "legacy-" + (s.id || Math.random().toString(36).slice(2)), name: "General Faculty", description: "Existing chapters", chapters: s.chapters });
+      s.chapters = [];
+    }
+  })));
+  return payload;
 }
 
 function byId(id) { return document.getElementById(id); }
@@ -93,35 +105,25 @@ function renderYears(course) {
   showGrid(course.name, years, `${years.length} years`, year => renderSubjects(course, year), renderCourses);
 }
 function renderSubjects(course, year) {
-  const subjects = (year.subjects || []).map(s => ({
-    ...s, title: s.name || s.title || "Subject",
-    description: `${(s.teachers || []).length} teachers`, icon: "▧"
-  }));
+  const subjects = (year.subjects || []).map(s => ({ ...s, title: s.name || s.title || "Subject", description: `${(s.teachers || []).length} teachers`, icon: "▧" }));
   showGrid(`${course.name} / ${year.name || year.title || "Year"}`, subjects, `${subjects.length} subjects`, subject => renderTeachers(course, year, subject), () => renderYears(course));
 }
 function renderTeachers(course, year, subject) {
-  const teachers = (subject.teachers || []).map(t => ({
-    ...t, title: t.name || "Teacher",
-    description: `${(t.chapters || []).length} chapters`, icon: "♙"
-  }));
-  // Preserve older content created before the Teacher level existed.
-  if ((subject.chapters || []).length) {
-    teachers.unshift({
-      id: "__legacy__", name: "General teacher", title: "General teacher",
-      description: `${subject.chapters.length} chapters`, icon: "♙",
-      chapters: subject.chapters, legacy: true
-    });
-  }
-  showGrid(`${subject.name || subject.title || "Subject"} / Teachers`, teachers, `${teachers.length} teachers`, teacher => renderChapters(course, year, subject, teacher), () => renderSubjects(course, year));
+  const teachers = subject.teachers || [];
+  showGrid(`${subject.name || subject.title || "Subject"} / Teachers`,
+    teachers.map(t => ({...t, title: t.name || t.title || "Teacher", description: t.description || "Teacher", icon: "♙"})),
+    `${teachers.length} teachers`,
+    teacher => renderChapters(course, year, subject, teacher),
+    () => renderSubjects(course, year));
 }
 function renderChapters(course, year, subject, teacher) {
-  const chapters = (teacher.chapters || []).map(c => ({
-    ...c, title: c.name || c.title || "Chapter",
-    description: `${(c.lectures || []).length} lectures`, icon: "▤"
-  }));
-  showGrid(`${teacher.name || "Teacher"} / Chapters`, chapters, `${chapters.length} chapters`, chapter => renderLectures(course, year, subject, teacher, chapter), () => renderTeachers(course, year, subject));
+  // Legacy subjects may have chapters directly; display them under a default teacher label.
+  const chapters = (teacher.chapters || []).map(c => ({ ...c, title: c.name || c.title || "Chapter", description: `${(c.lectures || []).length} lectures`, icon: "▤" }));
+  showGrid(`${teacher.name || "Teacher"} / Chapters`, chapters, `${chapters.length} chapters`,
+    chapter => renderLectures(course, year, subject, chapter, teacher),
+    () => renderTeachers(course, year, subject));
 }
-function renderLectures(course, year, subject, teacher, chapter) {
+function renderLectures(course, year, subject, chapter, teacher) {
   const grid = byId("course-grid");
   if (!grid) return;
   const heading = byId("page-title");
@@ -148,11 +150,11 @@ function renderLectures(course, year, subject, teacher, chapter) {
     </article>`).join("") : `<p class="empty-state">No published lectures are available yet.</p>`;
 
   grid.querySelectorAll("[data-watch]").forEach(btn => {
-    btn.addEventListener("click", () => renderInlinePlayer(lectures[Number(btn.dataset.watch)], course, year, subject, teacher, chapter));
+    btn.addEventListener("click", () => renderInlinePlayer(lectures[Number(btn.dataset.watch)], course, year, subject, chapter, teacher));
   });
 }
 
-function renderInlinePlayer(lecture, course, year, subject, teacher, chapter) {
+function renderInlinePlayer(lecture, course, year, subject, chapter, teacher) {
   const grid = byId("course-grid");
   const heading = byId("page-title");
   const count = byId("course-count");
@@ -165,7 +167,7 @@ function renderInlinePlayer(lecture, course, year, subject, teacher, chapter) {
   if (back) {
     back.classList.remove("hidden");
     back.textContent = "← Lectures";
-    back.onclick = () => renderLectures(course, year, subject, teacher, chapter);
+    back.onclick = () => renderLectures(course, year, subject, chapter, teacher);
   }
 
   const isVideoFile = /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
@@ -186,13 +188,13 @@ function renderInlinePlayer(lecture, course, year, subject, teacher, chapter) {
           : `<iframe class="player-embed" src="${safeUrl}" title="${esc(lecture.title || "Lecture video")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`}
       </div>
       <div class="inline-player-footer">
-        <span>${esc(teacher?.name || "Teacher")} · ${esc(chapter.name || chapter.title || "Chapter")}</span>
+        <span>${esc(chapter.name || chapter.title || "Chapter")}</span>
         <button type="button" class="btn btn-light" id="return-to-lectures">Back to lectures</button>
       </div>
       ${lecture.pdfUrl || lecture.pdf ? `<a class="course-card__arrow player-pdf-link" href="${esc(lecture.pdfUrl || lecture.pdf)}" target="_blank" rel="noopener noreferrer">Open lecture PDF ↗</a>` : ""}
     </section>`;
   const returnBtn = byId("return-to-lectures");
-  if (returnBtn) returnBtn.addEventListener("click", () => renderLectures(course, year, subject, teacher, chapter));
+  if (returnBtn) returnBtn.addEventListener("click", () => renderLectures(course, year, subject, chapter));
 
   const loading = byId("player-loading");
   const frame = grid.querySelector(".player-embed");

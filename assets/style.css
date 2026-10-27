@@ -163,6 +163,5 @@ textarea{resize:vertical}
  .catalogue-actions #back-btn{padding:9px 12px}
 }
 
-/* Teacher-first hierarchy controls */
-#teacher-list{margin:14px 0 4px}
-#teacher-list .manage-row small{display:block}
+/* Teacher hierarchy cards */
+#teacher-list{margin-top:12px}

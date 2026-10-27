@@ -10,6 +10,18 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 })[c]);
 
+
+function normalizeTeacherHierarchy(payload) {
+  (payload.courses || []).forEach(c => (c.years || []).forEach(y => (y.subjects || []).forEach(s => {
+    s.teachers ||= [];
+    if ((s.chapters || []).length) {
+      s.teachers.unshift({ id: "legacy-" + (s.id || Math.random().toString(36).slice(2)), name: "General Faculty", description: "Existing chapters", chapters: s.chapters });
+      s.chapters = [];
+    }
+  })));
+  return payload;
+}
+
 function toast(message) {
   const t = $("toast");
   if (!t) return;
@@ -30,7 +42,7 @@ async function request(url, opts = {}, adminKey = key) {
 
 async function load() {
   try {
-    data = await request("/api/data");
+    data = normalizeTeacherHierarchy(await request("/api/data"));
     if (!data || !Array.isArray(data.courses)) data = { courses: [] };
     renderAll();
   } catch (error) {
@@ -73,7 +85,7 @@ $("login-form").onsubmit = async event => {
   $("login-msg").textContent = "Connecting…";
   try {
     // Validate the key by writing back the exact current data; an invalid key is rejected by the Worker.
-    const current = await request("/api/data", {}, "");
+    const current = normalizeTeacherHierarchy(await request("/api/data", {}, ""));
     if (!current || !Array.isArray(current.courses)) throw new Error("Invalid API data");
     await request("/api/data", { method: "PUT", body: JSON.stringify(current) }, candidate);
     key = candidate;
@@ -107,19 +119,16 @@ function options(id, items, placeholder, selected) {
 function course(id) { return data.courses.find(c => c.id === id); }
 function year(courseId, id) { return course(courseId)?.years?.find(y => y.id === id); }
 function subject(courseId, yearId, id) { return year(courseId, yearId)?.subjects?.find(s => s.id === id); }
-function teacher(courseId, yearId, subjectId, id) {
-  return subject(courseId, yearId, subjectId)?.teachers?.find(t => t.id === id);
-}
-function chapter(courseId, yearId, subjectId, teacherId, id) {
-  return teacher(courseId, yearId, subjectId, teacherId)?.chapters?.find(c => c.id === id);
+function chapter(courseId, yearId, subjectId, id) {
+  return subject(courseId, yearId, subjectId)?.chapters?.find(c => c.id === id);
 }
 
 function allCounts() {
   let subjects = 0, chapters = 0, lectures = 0;
   data.courses.forEach(c => (c.years || []).forEach(y => (y.subjects || []).forEach(s => {
     subjects++;
-    (s.chapters || []).forEach(ch => { chapters++; lectures += (ch.lectures || []).length; });
     (s.teachers || []).forEach(t => (t.chapters || []).forEach(ch => { chapters++; lectures += (ch.lectures || []).length; }));
+    (s.chapters || []).forEach(ch => { chapters++; lectures += (ch.lectures || []).length; });
   })));
   return { subjects, chapters, lectures };
 }
@@ -140,25 +149,25 @@ function renderAll() {
 function refreshDependent() {
   const cid = $("subject-course").value;
   options("subject-year", course(cid)?.years || [], "Select year");
-
   const tc = $("teacher-course").value;
   options("teacher-year", course(tc)?.years || [], "Select year");
   options("teacher-subject", year(tc, $("teacher-year").value)?.subjects || [], "Select subject");
-
   const cc = $("chapter-course").value;
   options("chapter-year", course(cc)?.years || [], "Select year");
   options("chapter-subject", year(cc, $("chapter-year").value)?.subjects || [], "Select subject");
   options("chapter-teacher", subject(cc, $("chapter-year").value, $("chapter-subject").value)?.teachers || [], "Select teacher");
-
   const lc = $("lecture-course").value;
   options("lecture-year", course(lc)?.years || [], "Select year");
   options("lecture-subject", year(lc, $("lecture-year").value)?.subjects || [], "Select subject");
   options("lecture-teacher", subject(lc, $("lecture-year").value, $("lecture-subject").value)?.teachers || [], "Select teacher");
-  options("lecture-chapter", teacher(lc, $("lecture-year").value, $("lecture-subject").value, $("lecture-teacher").value)?.chapters || [], "Select chapter");
+  options("lecture-chapter", subject(lc, $("lecture-year").value, $("lecture-subject").value)?.teachers?.find(t => t.id === $("lecture-teacher").value)?.chapters || [], "Select chapter");
 }
 ["subject-course", "teacher-course", "chapter-course", "lecture-course"].forEach(id => $(id).onchange = refreshDependent);
 ["teacher-year", "chapter-year", "lecture-year"].forEach(id => $(id).onchange = refreshDependent);
-["teacher-subject", "chapter-subject", "chapter-teacher", "lecture-subject", "lecture-teacher"].forEach(id => $(id).onchange = refreshDependent);
+$("teacher-subject").onchange = refreshDependent;
+$("chapter-subject").onchange = refreshDependent;
+$("lecture-subject").onchange = refreshDependent;
+$("lecture-teacher").onchange = refreshDependent;
 
 $("course-form").onsubmit = async event => {
   event.preventDefault();
@@ -189,7 +198,7 @@ $("subject-form").onsubmit = async event => {
   if (!name) return toast("Enter a subject name");
   selectedYear.subjects ||= [];
   if (selectedYear.subjects.some(s => s.name.toLowerCase() === name.toLowerCase())) return toast("Subject already exists");
-  selectedYear.subjects.push({ id: uid(), name, chapters: [] });
+  selectedYear.subjects.push({ id: uid(), name, teachers: [], chapters: [] });
   if (await save()) event.target.reset();
 };
 
@@ -200,14 +209,16 @@ $("teacher-form").onsubmit = async event => {
   const name = $("teacher-name").value.trim();
   if (!name) return toast("Enter teacher name");
   selectedSubject.teachers ||= [];
-  if (selectedSubject.teachers.some(t => t.name.toLowerCase() === name.toLowerCase())) return toast("Teacher already exists in this subject");
-  selectedSubject.teachers.push({ id: uid(), name, chapters: [] });
+  if (selectedSubject.teachers.some(t => (t.name || "").toLowerCase() === name.toLowerCase())) return toast("Teacher already exists");
+  selectedSubject.teachers.push({ id: uid(), name, description: $("teacher-desc").value.trim(), chapters: [] });
   if (await save()) event.target.reset();
 };
 
 $("chapter-form").onsubmit = async event => {
   event.preventDefault();
-  const selectedTeacher = teacher($("chapter-course").value, $("chapter-year").value, $("chapter-subject").value, $("chapter-teacher").value);
+  const selectedSubject = subject($("chapter-course").value, $("chapter-year").value, $("chapter-subject").value);
+  if (!selectedSubject) return toast("Select a subject");
+  const selectedTeacher = (selectedSubject.teachers || []).find(t => t.id === $("chapter-teacher").value);
   if (!selectedTeacher) return toast("Select a teacher");
   const name = $("chapter-name").value.trim();
   if (!name) return toast("Enter a chapter name");
@@ -229,27 +240,13 @@ function renderManageLists() {
   $("subject-list").innerHTML = data.courses.flatMap(c => (c.years || []).flatMap(y =>
     (y.subjects || []).map(s => `
       <div class="manage-row">
-        <div><strong>${esc(s.name)}</strong><small>${esc(c.name)} / ${esc(y.name)} · ${(s.teachers || []).length} teachers · ${(s.chapters || []).length} legacy chapters</small></div>
+        <div><strong>${esc(s.name)}</strong><small>${esc(c.name)} / ${esc(y.name)} · ${(s.teachers || []).length} teachers</small></div>
         <button class="mini-btn danger" data-delsubject="${esc(c.id)}|${esc(y.id)}|${esc(s.id)}">Delete</button>
       </div>`))).join("");
 
-  const teacherRows = [];
-  data.courses.forEach(c => (c.years || []).forEach(y => (y.subjects || []).forEach(s =>
-    (s.teachers || []).forEach(t => teacherRows.push({c,y,s,t})))));
-  $("teacher-list").innerHTML = teacherRows.map(({c,y,s,t}) => `
-    <div class="manage-row">
-      <div><strong>${esc(t.name)}</strong><small>${esc(c.name)} / ${esc(y.name)} / ${esc(s.name)} · ${(t.chapters || []).length} chapters</small></div>
-      <button class="mini-btn danger" data-delteacher="${esc(c.id)}|${esc(y.id)}|${esc(s.id)}|${esc(t.id)}">Delete</button>
-    </div>`).join("") || '<div class="empty">No teachers added yet.</div>';
-  $("teacher-list").querySelectorAll("[data-delteacher]").forEach(button => button.onclick = async () => {
-    if (!confirm("Delete this teacher and all chapters/lectures?")) return;
-    const [cid,yid,sid,tid] = button.dataset.delteacher.split("|");
-    const selectedSubject = subject(cid,yid,sid);
-    if (selectedSubject) {
-      selectedSubject.teachers = (selectedSubject.teachers || []).filter(t => t.id !== tid);
-      await save();
-    }
-  });
+  $("teacher-list").innerHTML = data.courses.flatMap(c => (c.years || []).flatMap(y =>
+    (y.subjects || []).flatMap(s => (s.teachers || []).map(t => `
+      <div class="manage-row"><div><strong>${esc(t.name)}</strong><small>${esc(c.name)} / ${esc(y.name)} / ${esc(s.name)} · ${(t.chapters || []).length} chapters</small></div></div>`)))).join("");
 
   $("course-list").querySelectorAll("[data-addyear]").forEach(button => button.onclick = () => {
     $("year-course").value = button.dataset.addyear;
@@ -278,22 +275,22 @@ function renderLectures() {
   for (const c of (data.courses || [])) {
     for (const y of (c.years || [])) {
       for (const s of (y.subjects || [])) {
-        for (const ch of (s.chapters || [])) {
-          for (const l of (ch.lectures || [])) rows.push({ c, y, s, teacher: null, ch, l });
-        }
         for (const t of (s.teachers || [])) {
           for (const ch of (t.chapters || [])) {
-            for (const l of (ch.lectures || [])) rows.push({ c, y, s, teacher: t, ch, l });
+            for (const l of (ch.lectures || [])) rows.push({ c, y, s, t, ch, l });
           }
+        }
+        for (const ch of (s.chapters || [])) {
+          for (const l of (ch.lectures || [])) rows.push({ c, y, s, t: null, ch, l });
         }
       }
     }
   }
-  rows = rows.filter(x => `${x.l.title} ${x.c.name} ${x.s.name} ${x.teacher?.name || ""} ${x.ch.name}`.toLowerCase().includes(search));
-  $("lecture-list").innerHTML = rows.length ? rows.map(({ c, y, s, teacher, ch, l }) => `
+  rows = rows.filter(x => `${x.l.title} ${x.c.name} ${x.s.name} ${x.ch.name}`.toLowerCase().includes(search));
+  $("lecture-list").innerHTML = rows.length ? rows.map(({ c, y, s, t, ch, l }) => `
     <div class="lecture-admin-row">
       <div><h4>${esc(l.title)} <span class="badge ${esc(l.status || "published")}">${esc(l.status || "published")}</span></h4>
-      <p>${esc(c.name)} / ${esc(y.name)} / ${esc(s.name)}${teacher ? " / " + esc(teacher.name) : ""} / ${esc(ch.name)}<br>
+      <p>${esc(c.name)} / ${esc(y.name)} / ${esc(s.name)} / ${esc(t?.name || "Legacy")} / ${esc(ch.name)}<br>
       ${l.videoUrl ? "Video · " : ""}${l.pdfUrl ? "PDF · " : ""}${l.scheduleAt ? "Schedule: " + esc(l.scheduleAt) : ""}</p></div>
       <div class="mini-actions"><button class="mini-btn" data-edit="${esc(l.id)}">Edit</button><button class="mini-btn danger" data-delete="${esc(l.id)}">Delete</button></div>
     </div>`).join("") : '<div class="empty">No lectures found. Add your first lecture above.</div>';
@@ -302,8 +299,8 @@ function renderLectures() {
   $("lecture-list").querySelectorAll("[data-delete]").forEach(button => button.onclick = async () => {
     if (!confirm("Delete this lecture?")) return;
     data.courses.forEach(c => (c.years || []).forEach(y => (y.subjects || []).forEach(s => {
-      (s.chapters || []).forEach(ch => { ch.lectures = (ch.lectures || []).filter(l => l.id !== button.dataset.delete); });
       (s.teachers || []).forEach(t => (t.chapters || []).forEach(ch => { ch.lectures = (ch.lectures || []).filter(l => l.id !== button.dataset.delete); }));
+      (s.chapters || []).forEach(ch => { ch.lectures = (ch.lectures || []).filter(l => l.id !== button.dataset.delete); });
     })));
     await save();
   });
@@ -311,23 +308,14 @@ function renderLectures() {
 $("lecture-search").oninput = renderLectures;
 
 function editLectureById(id) {
-  for (const c of data.courses) for (const y of (c.years || [])) for (const s of (y.subjects || [])) {
-    for (const ch of (s.chapters || [])) {
-      const lecture = (ch.lectures || []).find(item => item.id === id);
-      if (lecture) { editLecture = { id, c, y, s, teacher: null, ch }; return fillLectureEdit(lecture, c, y, s, null, ch); }
-    }
-    for (const t of (s.teachers || [])) for (const ch of (t.chapters || [])) {
-      const lecture = (ch.lectures || []).find(item => item.id === id);
-      if (lecture) { editLecture = { id, c, y, s, teacher: t, ch }; return fillLectureEdit(lecture, c, y, s, t, ch); }
-    }
-  }
-}
-function fillLectureEdit(lecture, c, y, s, t, ch) {
+  for (const c of data.courses) for (const y of (c.years || [])) for (const s of (y.subjects || [])) for (const t of (s.teachers || [])) for (const ch of (t.chapters || [])) {
+    const lecture = (ch.lectures || []).find(item => item.id === id);
+    if (!lecture) continue;
+    editLecture = { id, c, y, s, t, ch };
     $("lecture-course").value = c.id; refreshDependent();
     $("lecture-year").value = y.id; refreshDependent();
     $("lecture-subject").value = s.id; refreshDependent();
-    if (t) $("lecture-teacher").value = t.id;
-    refreshDependent();
+    $("lecture-teacher").value = t.id; refreshDependent();
     $("lecture-chapter").value = ch.id;
     $("lecture-title").value = lecture.title || "";
     $("lecture-video").value = lecture.videoUrl || "";
@@ -341,6 +329,8 @@ function fillLectureEdit(lecture, c, y, s, t, ch) {
     $("lecture-submit").textContent = "Save changes";
     $("cancel-edit").classList.remove("hidden");
     window.scrollTo({ top: $("lecture-form").getBoundingClientRect().top + window.scrollY - 100, behavior: "smooth" });
+    return;
+  }
 }
 
 function resetLectureForm() {
@@ -354,9 +344,9 @@ $("cancel-edit").onclick = resetLectureForm;
 
 $("lecture-form").onsubmit = async event => {
   event.preventDefault();
-  const selectedTeacher = teacher($("lecture-course").value, $("lecture-year").value, $("lecture-subject").value, $("lecture-teacher").value);
-  if (!selectedTeacher) return toast("Select a teacher");
-  const selectedChapter = chapter($("lecture-course").value, $("lecture-year").value, $("lecture-subject").value, $("lecture-teacher").value, $("lecture-chapter").value);
+  const selectedSubject = subject($("lecture-course").value, $("lecture-year").value, $("lecture-subject").value);
+  const selectedTeacher = (selectedSubject?.teachers || []).find(t => t.id === $("lecture-teacher").value);
+  const selectedChapter = selectedTeacher?.chapters?.find(ch => ch.id === $("lecture-chapter").value);
   if (!selectedChapter) return toast("Select a chapter");
   const item = {
     id: editLecture?.id || uid(),
@@ -374,7 +364,8 @@ $("lecture-form").onsubmit = async event => {
   };
   if (!item.title) return toast("Enter a lecture title");
   if (editLecture) {
-    editLecture.ch.lectures = (editLecture.ch.lectures || []).filter(l => l.id !== editLecture.id);
+    const oldIndex = editLecture.ch.lectures.findIndex(l => l.id === editLecture.id);
+    if (oldIndex >= 0) editLecture.ch.lectures.splice(oldIndex, 1);
   }
   selectedChapter.lectures ||= [];
   selectedChapter.lectures.push(item);
@@ -385,7 +376,7 @@ $("lecture-form").onsubmit = async event => {
   if (key) {
     try {
       // Re-check the stored key against the protected write endpoint without changing the stored data.
-      const current = await request("/api/data", {}, "");
+      const current = normalizeTeacherHierarchy(await request("/api/data", {}, ""));
       await request("/api/data", { method: "PUT", body: JSON.stringify(current) }, key);
       data = current;
       showDashboard();
