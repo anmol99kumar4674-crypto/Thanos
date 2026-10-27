@@ -43,12 +43,10 @@ function renderCourses() {
   if (!grid) return;
   const heading = byId("page-title");
   const count = byId("course-count");
-  const area = byId("learning-area");
   const back = byId("back-btn");
 
   if (heading) heading.textContent = "Choose your course";
   if (count) count.textContent = `${data.courses.length} courses`;
-  if (area) area.classList.add("hidden");
 
   grid.innerHTML = data.courses.map((course, i) => `
     <button class="course-card" type="button" data-course="${i}">
@@ -69,11 +67,9 @@ function showGrid(title, items, countText, onClick, backAction) {
   if (!grid) return;
   const heading = byId("page-title");
   const count = byId("course-count");
-  const area = byId("learning-area");
   const back = byId("back-btn");
   if (heading) heading.textContent = title;
   if (count) count.textContent = countText;
-  if (area) area.classList.remove("hidden");
 
   grid.innerHTML = items.length ? items.map((item, i) => `
     <button class="course-card" type="button" data-item="${i}">
@@ -104,12 +100,10 @@ function renderLectures(course, year, subject, chapter) {
   if (!grid) return;
   const heading = byId("page-title");
   const count = byId("course-count");
-  const area = byId("learning-area");
   const back = byId("back-btn");
   const lectures = (chapter.lectures || []).filter(l => l.status !== "draft" && (!l.publishDate || new Date(l.publishDate) <= new Date()));
   if (heading) heading.textContent = `${chapter.name || chapter.title || "Chapter"} / Lectures`;
   if (count) count.textContent = `${lectures.length} lectures`;
-  if (area) area.classList.remove("hidden");
   if (back) {
     back.textContent = "← Chapters";
     back.onclick = () => renderChapters(course, year, subject);
@@ -154,9 +148,14 @@ function renderInlinePlayer(lecture, course, year, subject, chapter) {
         <span class="player-live">Lecture</span>
       </div>
       <div class="inline-player-frame">
+        <div class="player-loading" id="player-loading" role="status" aria-live="polite">
+          <span class="player-spinner" aria-hidden="true"></span>
+          <strong>Video loading…</strong>
+          <small>Please wait while the lecture player connects.</small>
+        </div>
         ${isVideoFile
-          ? `<video controls autoplay playsinline preload="metadata" src="${safeUrl}">Your browser does not support video playback.</video>`
-          : `<iframe src="${safeUrl}" title="${esc(lecture.title || "Lecture video")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`}
+          ? `<video controls playsinline preload="metadata" src="${safeUrl}">Your browser does not support video playback.</video>`
+          : `<iframe class="player-embed" src="${safeUrl}" title="${esc(lecture.title || "Lecture video")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`}
       </div>
       <div class="inline-player-footer">
         <span>${esc(chapter.name || chapter.title || "Chapter")}</span>
@@ -166,11 +165,32 @@ function renderInlinePlayer(lecture, course, year, subject, chapter) {
     </section>`;
   const returnBtn = byId("return-to-lectures");
   if (returnBtn) returnBtn.addEventListener("click", () => renderLectures(course, year, subject, chapter));
+
+  const loading = byId("player-loading");
+  const frame = grid.querySelector(".player-embed");
+  const video = grid.querySelector("video");
+  const hideLoading = () => { if (loading) loading.classList.add("is-hidden"); };
+  if (frame) {
+    frame.addEventListener("load", () => window.setTimeout(hideLoading, 1200), { once: true });
+    // Do not leave our loading overlay forever if a cross-origin player is slow.
+    window.setTimeout(hideLoading, 10000);
+  } else if (video) {
+    video.addEventListener("loadedmetadata", hideLoading, { once: true });
+    video.addEventListener("canplay", hideLoading, { once: true });
+    video.addEventListener("error", () => {
+      if (loading) {
+        loading.classList.add("has-error");
+        const title = loading.querySelector("strong");
+        const detail = loading.querySelector("small");
+        if (title) title.textContent = "Video could not be loaded";
+        if (detail) detail.textContent = "Please check the video URL or try again.";
+      }
+    }, { once: true });
+  }
 }
 
 window.addEventListener("popstate", () => {
   const back = byId("back-btn");
-  const area = byId("learning-area");
   if (area && !area.classList.contains("hidden") && back && typeof back.onclick === "function") {
     back.onclick();
   } else {

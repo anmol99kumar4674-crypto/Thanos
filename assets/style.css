@@ -142,3 +142,14 @@ textarea{resize:vertical}
 .inline-player-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:15px;color:var(--muted,#75829a);font-size:12px}
 .player-pdf-link{display:inline-flex;margin-top:12px}
 @media(max-width:520px){.inline-player-card{padding:13px;border-radius:16px}.inline-player-frame{border-radius:10px}.inline-player-footer{align-items:flex-start;flex-direction:column}.inline-player-footer .btn{width:100%}}
+
+/* Professional loading state for embedded lecture player */
+.inline-player-frame{position:relative}
+.inline-player-frame .player-embed,.inline-player-frame video{position:absolute;inset:0;z-index:1}
+.player-loading{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:20px;background:#111827;color:#fff}
+.player-loading strong{font-size:15px;font-weight:800}
+.player-loading small{font-size:11px;line-height:1.6;color:#cbd5e1;max-width:250px}
+.player-spinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.22);border-top-color:#fff;border-radius:50%;animation:player-spin .8s linear infinite}
+.player-loading.is-hidden{display:none}
+.player-loading.has-error{background:#172033}
+@keyframes player-spin{to{transform:rotate(360deg)}}
