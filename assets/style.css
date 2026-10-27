@@ -167,3 +167,5 @@ textarea{resize:vertical}
 #teacher-list{margin-top:14px}
 #teacher-list .manage-row small{display:block}
 #teacher-form{margin-top:8px}
+
+/* Teacher is the parent of chapters in the learning hierarchy */
