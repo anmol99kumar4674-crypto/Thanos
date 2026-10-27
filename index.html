@@ -1,20 +1,69 @@
 <!doctype html>
-<html lang="hi">
+<html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Thanos — Learn Smarter</title><link rel="stylesheet" href="assets/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f9fc">
+  <meta name="description" content="Thanos learning library for MBBS, BDS and other courses. Browse organised subjects, chapters, lectures and notes.">
+  <title>Thanos — Learning Library</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css?v=professional-2">
 </head>
 <body>
-<header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">S</span><span>Thanos<small>LEARN • PRACTICE • GROW</small></span></a><nav><a class="active" href="index.html">Home</a><a href="admin.html">Admin</a></nav></header>
-<main class="container">
-<section class="hero"><div><span class="eyebrow">YOUR LEARNING SPACE</span><h1>Study smarter.<br><span>Go further.</span></h1><p>Choose your course and continue learning with organised subjects, chapters, lectures and notes.</p></div><div class="hero-art"><div class="hero-book">✦</div><div class="hero-pill pill-one">Video lectures</div><div class="hero-pill pill-two">Notes & PDFs</div><div class="hero-pill pill-three">Your progress starts here</div></div></section>
-<section class="section-head"><div><span class="eyebrow">EXPLORE LIBRARY</span><h2>Choose your course</h2></div><span id="course-count" class="muted"></span></section>
-<div id="course-grid" class="course-grid"><div class="empty">Loading courses…</div></div>
-<section id="learning-area" class="learning-area hidden">
-<div class="breadcrumb" id="breadcrumb"></div><div class="section-head"><div><span class="eyebrow">COURSE CONTENT</span><h2 id="current-heading">Subjects</h2></div><button class="btn btn-light" id="back-btn">← Back</button></div>
-<div id="content-grid" class="content-grid"></div>
-</section>
-<footer>© Thanos · A simpler way to learn</footer>
-</main>
-<script src="assets/app.js"></script>
-</body></html>
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="Thanos home">
+      <span class="brand-mark">T</span>
+      <span class="brand-copy">Thanos<small>LEARNING LIBRARY</small></span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a class="active" href="index.html">Home</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="welcome-strip">
+      <div>
+        <span class="eyebrow">YOUR STUDY LIBRARY</span>
+        <h1>Everything you need to learn.</h1>
+        <p>Browse your course materials, open a subject, and continue through chapters, lectures and notes.</p>
+      </div>
+      <div class="welcome-mark" aria-hidden="true">T</div>
+    </section>
+
+    <section class="library-section" aria-labelledby="page-title">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">COURSE CATALOGUE</span>
+          <h2 id="page-title">Explore your courses</h2>
+          <p class="section-subtitle">Choose a course to view its learning material.</p>
+        </div>
+        <span id="course-count" class="count-pill">Loading…</span>
+      </div>
+      <div id="course-grid" class="course-grid">
+        <div class="loading-card"><span class="loader"></span><span>Loading courses…</span></div>
+      </div>
+    </section>
+
+    <section id="learning-area" class="learning-area hidden">
+      <div id="breadcrumb" class="breadcrumb"></div>
+      <div class="section-head content-section-head">
+        <div>
+          <span class="eyebrow">LEARNING MATERIAL</span>
+          <h2 id="current-heading">Course content</h2>
+        </div>
+        <button class="btn btn-light" id="back-btn" type="button">← Back</button>
+      </div>
+      <div id="content-grid" class="content-grid"></div>
+    </section>
+
+    <footer>
+      <span class="footer-brand">Thanos</span>
+      <span>Learn · Practice · Grow</span>
+    </footer>
+  </main>
+  <script src="assets/app.js?v=professional-2" defer></script>
+</body>
+</html>
