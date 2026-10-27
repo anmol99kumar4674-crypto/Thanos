@@ -153,3 +153,12 @@ textarea{resize:vertical}
 .player-loading.is-hidden{display:none}
 .player-loading.has-error{background:#172033}
 @keyframes player-spin{to{transform:rotate(360deg)}}
+
+/* Navigation controls */
+.catalogue-actions{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+#back-btn{white-space:nowrap}
+@media(max-width:520px){
+ .catalogue-actions{flex-direction:column-reverse;align-items:flex-end;gap:8px}
+ .catalogue-actions .count-pill{font-size:10px}
+ .catalogue-actions #back-btn{padding:9px 12px}
+}

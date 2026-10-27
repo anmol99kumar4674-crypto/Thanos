@@ -59,7 +59,11 @@ function renderCourses() {
   grid.querySelectorAll("[data-course]").forEach(btn => {
     btn.addEventListener("click", () => { pushLibraryHistory(); renderYears(data.courses[Number(btn.dataset.course)]); });
   });
-  if (back) back.onclick = renderCourses;
+  if (back) {
+    back.textContent = "← Back";
+    back.classList.add("hidden");
+    back.onclick = renderCourses;
+  }
 }
 
 function showGrid(title, items, countText, onClick, backAction) {
@@ -68,6 +72,7 @@ function showGrid(title, items, countText, onClick, backAction) {
   const heading = byId("page-title");
   const count = byId("course-count");
   const back = byId("back-btn");
+  if (back) back.classList.remove("hidden");
   if (heading) heading.textContent = title;
   if (count) count.textContent = countText;
 
@@ -105,6 +110,7 @@ function renderLectures(course, year, subject, chapter) {
   if (heading) heading.textContent = `${chapter.name || chapter.title || "Chapter"} / Lectures`;
   if (count) count.textContent = `${lectures.length} lectures`;
   if (back) {
+    back.classList.remove("hidden");
     back.textContent = "← Chapters";
     back.onclick = () => renderChapters(course, year, subject);
   }
@@ -136,6 +142,7 @@ function renderInlinePlayer(lecture, course, year, subject, chapter) {
   if (heading) heading.textContent = lecture.title || lecture.name || "Lecture";
   if (count) count.textContent = "Now playing";
   if (back) {
+    back.classList.remove("hidden");
     back.textContent = "← Lectures";
     back.onclick = () => renderLectures(course, year, subject, chapter);
   }
@@ -191,7 +198,7 @@ function renderInlinePlayer(lecture, course, year, subject, chapter) {
 
 window.addEventListener("popstate", () => {
   const back = byId("back-btn");
-  if (area && !area.classList.contains("hidden") && back && typeof back.onclick === "function") {
+  if (back && !back.classList.contains("hidden") && typeof back.onclick === "function") {
     back.onclick();
   } else {
     renderCourses();
