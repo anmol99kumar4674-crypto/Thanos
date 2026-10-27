@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=loading-ui-3">
+<link rel="stylesheet" href="assets/style.css?v=back-fix-4">
 </head>
 <body>
 <header class="topbar">
@@ -27,7 +27,10 @@
         <h1 id="page-title">Choose your course</h1>
         <p class="section-subtitle">Select a course to explore subjects, chapters, lectures and notes.</p>
       </div>
-      <span id="course-count" class="count-pill">Loading…</span>
+      <div class="catalogue-actions">
+        <span id="course-count" class="count-pill">Loading…</span>
+        <button class="btn btn-light hidden" id="back-btn" type="button">← Back</button>
+      </div>
     </div>
     <div id="course-grid" class="course-grid">
       <div class="loading-card"><span class="loader"></span><span>Loading courses…</span></div>
@@ -35,6 +38,6 @@
   </section>
 <footer><span class="footer-brand">Thanos</span><span>Learn · Practice · Grow</span></footer>
 </main>
-<script src="assets/app.js?v=loading-ui-3" defer></script>
+<script src="assets/app.js?v=back-fix-4" defer></script>
 </body>
 </html>
