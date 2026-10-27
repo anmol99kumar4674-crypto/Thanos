@@ -93,26 +93,41 @@ function renderYears(course) {
   showGrid(course.name, years, `${years.length} years`, year => renderSubjects(course, year), renderCourses);
 }
 function renderSubjects(course, year) {
-  const subjects = (year.subjects || []).map(s => ({ ...s, title: s.name || s.title || "Subject", description: `${(s.teachers || []).length} teachers`, icon: "▧" }));
+  const subjects = (year.subjects || []).map(s => ({
+    ...s, title: s.name || s.title || "Subject",
+    description: `${(s.teachers || []).length} teachers`, icon: "▧"
+  }));
   showGrid(`${course.name} / ${year.name || year.title || "Year"}`, subjects, `${subjects.length} subjects`, subject => renderTeachers(course, year, subject), () => renderYears(course));
 }
 function renderTeachers(course, year, subject) {
-  const teachers = (subject.teachers || []).map(t => ({ ...t, title: t.name || "Teacher", description: `${(t.chapters || []).length} chapters`, icon: "♙" }));
+  const teachers = (subject.teachers || []).map(t => ({
+    ...t, title: t.name || "Teacher",
+    description: `${(t.chapters || []).length} chapters`, icon: "♙"
+  }));
+  // Preserve older content created before the Teacher level existed.
+  if ((subject.chapters || []).length) {
+    teachers.unshift({
+      id: "__legacy__", name: "General teacher", title: "General teacher",
+      description: `${subject.chapters.length} chapters`, icon: "♙",
+      chapters: subject.chapters, legacy: true
+    });
+  }
   showGrid(`${subject.name || subject.title || "Subject"} / Teachers`, teachers, `${teachers.length} teachers`, teacher => renderChapters(course, year, subject, teacher), () => renderSubjects(course, year));
 }
 function renderChapters(course, year, subject, teacher) {
-  const chapters = (teacher.chapters || []).map(ch => ({ ...ch, title: ch.name || ch.title || "Chapter", description: `${(ch.lectures || []).length} lectures`, icon: "▤" }));
+  const chapters = (teacher.chapters || []).map(c => ({
+    ...c, title: c.name || c.title || "Chapter",
+    description: `${(c.lectures || []).length} lectures`, icon: "▤"
+  }));
   showGrid(`${teacher.name || "Teacher"} / Chapters`, chapters, `${chapters.length} chapters`, chapter => renderLectures(course, year, subject, teacher, chapter), () => renderTeachers(course, year, subject));
 }
-
 function renderLectures(course, year, subject, teacher, chapter) {
   const grid = byId("course-grid");
   if (!grid) return;
   const heading = byId("page-title");
   const count = byId("course-count");
   const back = byId("back-btn");
-  const lectureSource = chapter.lectures || [];
-  const lectures = lectureSource.filter(l => l.status !== "draft" && (!l.publishDate || new Date(l.publishDate) <= new Date()));
+  const lectures = (chapter.lectures || []).filter(l => l.status !== "draft" && (!l.publishDate || new Date(l.publishDate) <= new Date()));
   if (heading) heading.textContent = `${chapter.name || chapter.title || "Chapter"} / Lectures`;
   if (count) count.textContent = `${lectures.length} lectures`;
   if (back) {
@@ -171,7 +186,7 @@ function renderInlinePlayer(lecture, course, year, subject, teacher, chapter) {
           : `<iframe class="player-embed" src="${safeUrl}" title="${esc(lecture.title || "Lecture video")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`}
       </div>
       <div class="inline-player-footer">
-        <span>${esc(chapter.name || chapter.title || "Chapter")}</span>
+        <span>${esc(teacher?.name || "Teacher")} · ${esc(chapter.name || chapter.title || "Chapter")}</span>
         <button type="button" class="btn btn-light" id="return-to-lectures">Back to lectures</button>
       </div>
       ${lecture.pdfUrl || lecture.pdf ? `<a class="course-card__arrow player-pdf-link" href="${esc(lecture.pdfUrl || lecture.pdf)}" target="_blank" rel="noopener noreferrer">Open lecture PDF ↗</a>` : ""}

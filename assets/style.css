@@ -163,9 +163,6 @@ textarea{resize:vertical}
  .catalogue-actions #back-btn{padding:9px 12px}
 }
 
-/* Teacher hierarchy admin polish */
-#teacher-list{margin-top:14px}
+/* Teacher-first hierarchy controls */
+#teacher-list{margin:14px 0 4px}
 #teacher-list .manage-row small{display:block}
-#teacher-form{margin-top:8px}
-
-/* Teacher is the parent of chapters in the learning hierarchy */
