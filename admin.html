@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="hi">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thanos Admin</title><link rel="stylesheet" href="assets/style.css?v=13-teacher-before-chapter"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thanos Admin</title><link rel="stylesheet" href="assets/style.css?v=teacher-level-1"></head>
 <body class="admin-body">
 <header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">S</span><span>Thanos<small>ADMIN CONSOLE</small></span></a><nav><a href="index.html">View Website ↗</a></nav></header>
 <main class="admin-wrap">
-<section id="login-panel" class="login-card"><span class="eyebrow">RESTRICTED ACCESS</span><h1>Welcome back</h1><p class="muted">Admin key डालकर अपने courses और lectures manage करें।</p><form id="login-form"><label>Admin Key<input id="admin-key" type="password" autocomplete="current-password" required placeholder="Cloudflare ADMIN_KEY"></label><button class="btn btn-primary full" type="submit">Open Admin Panel</button><p id="login-msg" class="form-msg"></p></form><div class="hint">पहले Worker deploy करें और उसमें <code>ADMIN_KEY</code> secret सेट करें।</div></section>
+<section id="login-panel" class="login-card"><span class="eyebrow">RESTRICTED ACCESS</span><h1>Only Admin</h1></h1><form id="login-form"><label>Admin Key<input id="admin-key" type="password" autocomplete="current-password" required placeholder="password"></label><button class="btn btn-primary full" type="submit">Open Admin Panel</button><p id="login-msg" class="form-msg"></p></form></section>
 <section id="dashboard" class="hidden">
 <div class="admin-heading"><div><span class="eyebrow">CONTENT MANAGEMENT</span><h1>Admin dashboard</h1><p class="muted">Course → Year → Subject → Teacher → Chapter → Lecture</p></div><button id="logout-btn" class="btn btn-light">Log out</button></div>
 <div class="stats-row"><div class="stat-card"><span>Courses</span><strong id="stat-courses">0</strong></div><div class="stat-card"><span>Subjects</span><strong id="stat-subjects">0</strong></div><div class="stat-card"><span>Chapters</span><strong id="stat-chapters">0</strong></div><div class="stat-card"><span>Lectures</span><strong id="stat-lectures">0</strong></div></div>
@@ -12,26 +12,19 @@
 <section class="panel"><div class="panel-title"><div><span class="eyebrow">STEP 01</span><h2>Course & Year</h2></div></div>
 <form id="course-form" class="stack-form"><label>Course name<input id="course-name" required placeholder="e.g. MBBS"></label><label>Short description<input id="course-desc" placeholder="Optional description"></label><button class="btn btn-primary" type="submit">＋ Add Course</button></form>
 <div class="divider"></div><form id="year-form" class="stack-form"><label>Select course<select id="year-course" required></select></label><label>Year name<input id="year-name" required placeholder="e.g. 1st Year"></label><button class="btn btn-secondary" type="submit">＋ Add Year</button></form><div id="course-list" class="manage-list"></div></section>
-<section class="panel"><div class="panel-title"><div><span class="eyebrow">STEP 02</span><h2>Teacher & Chapter</h2></div></div>
+<section class="panel"><div class="panel-title"><div><span class="eyebrow">STEP 02</span><h2>Subject & Chapter</h2></div></div>
 <form id="subject-form" class="stack-form"><label>Course<select id="subject-course" required></select></label><label>Year<select id="subject-year" required></select></label><label>Subject name<input id="subject-name" required placeholder="e.g. General Anatomy"></label><button class="btn btn-primary" type="submit">＋ Add Subject</button></form>
 <div class="divider"></div>
 <form id="teacher-form" class="stack-form">
 <label>Course<select id="teacher-course" required></select></label>
 <label>Year<select id="teacher-year" required></select></label>
 <label>Subject<select id="teacher-subject" required></select></label>
-<label>Teacher name<input id="teacher-name" required placeholder="e.g. Dr. Rajesh Kumar"></label>
+<label>Teacher name<input id="teacher-name" required placeholder="e.g. Dr. Sharma"></label>
+<label>Teacher description (optional)<input id="teacher-desc" placeholder="e.g. Anatomy Faculty"></label>
 <button class="btn btn-secondary" type="submit">＋ Add Teacher</button>
 </form>
 <div id="teacher-list" class="manage-list"></div>
-<div class="divider"></div>
-<form id="chapter-form" class="stack-form">
-<label>Course<select id="chapter-course" required></select></label>
-<label>Year<select id="chapter-year" required></select></label>
-<label>Subject<select id="chapter-subject" required></select></label>
-<label>Teacher<select id="chapter-teacher" required></select></label>
-<label>Chapter name<input id="chapter-name" required placeholder="e.g. Introduction"></label>
-<button class="btn btn-secondary" type="submit">＋ Add Chapter</button>
-</form><div id="subject-list" class="manage-list"></div></section>
+<div class="divider"></div><form id="chapter-form" class="stack-form"><label>Course<select id="chapter-course" required></select></label><label>Year<select id="chapter-year" required></select></label><label>Subject<select id="chapter-subject" required></select></label><label>Teacher<select id="chapter-teacher" required></select></label><label>Chapter name<input id="chapter-name" required placeholder="e.g. Introduction"></label><button class="btn btn-secondary" type="submit">＋ Add Chapter</button></form><div id="subject-list" class="manage-list"></div></section>
 <section class="panel panel-wide"><div class="panel-title"><div><span class="eyebrow">STEP 03</span><h2>Lecture manager</h2><p class="muted">URLs, notes, thumbnail और publishing schedule सेट करें।</p></div></div>
 <form id="lecture-form" class="lecture-form">
 <label>Course<select id="lecture-course" required></select></label><label>Year<select id="lecture-year" required></select></label><label>Subject<select id="lecture-subject" required></select></label><label>Teacher<select id="lecture-teacher" required></select></label><label>Chapter<select id="lecture-chapter" required></select></label>
@@ -46,4 +39,4 @@
 </div>
 <p class="security-note">🔒 Write actions are checked by your Cloudflare Worker. Never place your admin key in public source code.</p>
 </section>
-</main><div id="toast" class="toast"></div><script src="assets/admin.js?v=13-teacher-before-chapter"></script></body></html>
+</main><div id="toast" class="toast"></div><script src="assets/admin.js?v=teacher-level-1"></script></body></html>
