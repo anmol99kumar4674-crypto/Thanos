@@ -28,6 +28,16 @@ function esc(value) {
   })[c]);
 }
 
+
+// Safe internal navigation history helper. It must exist before course cards are clicked.
+function pushLibraryHistory() {
+  try {
+    history.pushState({ thanosLibrary: true }, "", location.href);
+  } catch (error) {
+    console.warn("Could not update browser history:", error);
+  }
+}
+
 function renderCourses() {
   const grid = byId("course-grid");
   if (!grid) return;
@@ -157,6 +167,17 @@ function renderInlinePlayer(lecture, course, year, subject, chapter) {
   const returnBtn = byId("return-to-lectures");
   if (returnBtn) returnBtn.addEventListener("click", () => renderLectures(course, year, subject, chapter));
 }
+
+window.addEventListener("popstate", () => {
+  const back = byId("back-btn");
+  const area = byId("learning-area");
+  if (area && !area.classList.contains("hidden") && back && typeof back.onclick === "function") {
+    back.onclick();
+  } else {
+    renderCourses();
+  }
+});
+
 document.addEventListener("DOMContentLoaded", async () => {
   await loadData();
   renderCourses();
