@@ -233,17 +233,8 @@ function renderManageLists() {
 function renderLectures() {
   const search = $("lecture-search").value.toLowerCase();
   let rows = [];
-  for (const c of (data.courses || [])) {
-    for (const y of (c.years || [])) {
-      for (const s of (y.subjects || [])) {
-        for (const ch of (s.chapters || [])) {
-          for (const l of (ch.lectures || [])) {
-            rows.push({ c, y, s, ch, l });
-          }
-        }
-      }
-    }
-  }
+  data.courses.forEach(c => (c.years || []).forEach(y => (y.subjects || []).forEach(s =>
+    (s.chapters || []).forEach(ch => (ch.lectures || []).forEach(l => rows.push({ c, y, s, ch, l })))));
   rows = rows.filter(x => `${x.l.title} ${x.c.name} ${x.s.name} ${x.ch.name}`.toLowerCase().includes(search));
   $("lecture-list").innerHTML = rows.length ? rows.map(({ c, y, s, ch, l }) => `
     <div class="lecture-admin-row">
