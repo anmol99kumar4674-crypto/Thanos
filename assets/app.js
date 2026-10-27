@@ -49,7 +49,7 @@ function renderCourses() {
     </button>`).join("");
 
   grid.querySelectorAll("[data-course]").forEach(btn => {
-    btn.addEventListener("click", () => renderYears(data.courses[Number(btn.dataset.course)]));
+    btn.addEventListener("click", () => { pushLibraryHistory(); renderYears(data.courses[Number(btn.dataset.course)]); });
   });
   if (back) back.onclick = renderCourses;
 }
@@ -73,7 +73,7 @@ function showGrid(title, items, countText, onClick, backAction) {
       <span class="course-card__arrow">Open →</span>
     </button>`).join("") : `<p class="empty-state">${esc(items.emptyMessage || "Nothing has been added here yet.")}</p>`;
 
-  grid.querySelectorAll("[data-item]").forEach(btn => btn.addEventListener("click", () => onClick(items[Number(btn.dataset.item)])));
+  grid.querySelectorAll("[data-item]").forEach(btn => btn.addEventListener("click", () => { pushLibraryHistory(); onClick(items[Number(btn.dataset.item)]); }));
   if (back) back.onclick = backAction || renderCourses;
 }
 
@@ -127,7 +127,6 @@ function renderInlinePlayer(lecture, course, year, subject, chapter) {
   const count = byId("course-count");
   const back = byId("back-btn");
   if (!grid) return;
-
   const url = lecture.videoUrl || lecture.video || "";
   const safeUrl = esc(url);
   if (heading) heading.textContent = lecture.title || lecture.name || "Lecture";
@@ -137,8 +136,6 @@ function renderInlinePlayer(lecture, course, year, subject, chapter) {
     back.onclick = () => renderLectures(course, year, subject, chapter);
   }
 
-  // Stream pages (such as /video/2?chat=...) are embedded in an iframe.
-  // Native video files are played with the browser's built-in video element.
   const isVideoFile = /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
   grid.innerHTML = `
     <section class="inline-player-card">
