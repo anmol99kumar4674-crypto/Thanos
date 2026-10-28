@@ -346,6 +346,24 @@ function renderLectures() {
 $("lecture-search").oninput = renderLectures;
 if ($("refresh-visits")) $("refresh-visits").onclick = loadVisits;
 
+function showAdminView(view) {
+  const content = $("content-view"), analytics = $("analytics-view");
+  const contentButton = $("menu-content"), analyticsButton = $("menu-analytics");
+  if (!content || !analytics) return;
+  const isAnalytics = view === "analytics";
+  content.classList.toggle("hidden", isAnalytics);
+  analytics.classList.toggle("hidden", !isAnalytics);
+  contentButton?.classList.toggle("btn-primary", !isAnalytics);
+  contentButton?.classList.toggle("btn-light", isAnalytics);
+  analyticsButton?.classList.toggle("btn-primary", isAnalytics);
+  analyticsButton?.classList.toggle("btn-light", !isAnalytics);
+  contentButton?.setAttribute("aria-selected", String(!isAnalytics));
+  analyticsButton?.setAttribute("aria-selected", String(isAnalytics));
+  if (isAnalytics) loadVisits();
+}
+$("menu-content")?.addEventListener("click", () => showAdminView("content"));
+$("menu-analytics")?.addEventListener("click", () => showAdminView("analytics"));
+
 function editLectureById(id) {
   for (const c of data.courses) for (const y of (c.years || [])) for (const s of (y.subjects || [])) for (const t of (s.teachers || [])) for (const ch of (t.chapters || [])) {
     const lecture = (ch.lectures || []).find(item => item.id === id);

@@ -284,7 +284,7 @@ function setupStudentLogin() {
   if (!form || !courseSelect) return;
   courseSelect.innerHTML = `<option value="">Course select karein</option>` +
     data.courses.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
-  const existing = (()=>{try{return JSON.parse(sessionStorage.getItem("thanos_student")||"null")}catch{return null}})();
+  const existing = (()=>{try{return JSON.parse(localStorage.getItem("thanos_student_profile")||"null")}catch{return null}})();
   if (existing?.name && existing?.course && data.courses.some(c=>c.id===existing.course)) {
     byId("student-name").value = existing.name;
     courseSelect.value = existing.course;
@@ -301,6 +301,7 @@ function setupStudentLogin() {
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
     button.textContent = "Opening library…";
+    localStorage.setItem("thanos_student_profile", JSON.stringify({name, course: courseId, courseName: selectedCourse.name, savedAt: Date.now()}));
     await startStudentVisit(name, selectedCourse.name);
     byId("student-login").classList.add("hidden");
     byId("student-library").classList.remove("hidden");
@@ -309,10 +310,15 @@ function setupStudentLogin() {
     button.textContent = "Login & Continue →";
   });
   if (existing?.name && existing?.course && data.courses.some(c=>c.id===existing.course)) {
-    // Requiring a new login each tab/session gives the admin a new visit record.
-    sessionStorage.removeItem("thanos_student");
     byId("student-name").value = existing.name;
     courseSelect.value = existing.course;
+    const savedCourse = data.courses.find(c => c.id === existing.course);
+    // Reuse the saved profile and start a fresh tracked visit automatically.
+    startStudentVisit(existing.name, savedCourse.name).then(() => {
+      byId("student-login").classList.add("hidden");
+      byId("student-library").classList.remove("hidden");
+      renderCourses();
+    });
   }
 }
 

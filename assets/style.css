@@ -192,3 +192,8 @@ textarea{resize:vertical}
 .badge.ended{background:#edf0f5;color:#657187}
 .analytics-note{font-size:12px;line-height:1.6;margin-top:12px}
 @media(max-width:600px){.student-login-wrap{margin:24px auto 38px;padding:0 16px}.student-login-card{padding:23px;border-radius:20px}}
+
+/* Admin navigation: keep analytics away from content-upload forms */
+.admin-menu{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 22px}
+.admin-menu .btn{min-height:44px}
+#analytics-view .student-analytics{margin-top:0}
