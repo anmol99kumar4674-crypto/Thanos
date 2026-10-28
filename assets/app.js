@@ -57,10 +57,15 @@ function renderCourses() {
   const count = byId("course-count");
   const back = byId("back-btn");
 
-  if (heading) heading.textContent = "Choose your course";
-  if (count) count.textContent = `${data.courses.length} courses`;
+  let visibleCourses = data.courses;
+  try {
+    const student = JSON.parse(sessionStorage.getItem("thanos_student") || "null");
+    if (student?.course) visibleCourses = data.courses.filter(c => c.name === student.course);
+  } catch (_) {}
+  if (heading) heading.textContent = "Your course";
+  if (count) count.textContent = `${visibleCourses.length} course${visibleCourses.length === 1 ? "" : "s"}`;
 
-  grid.innerHTML = data.courses.map((course, i) => `
+  grid.innerHTML = visibleCourses.map((course, i) => `
     <button class="course-card" type="button" data-course="${i}">
       <span class="course-card__icon">${course.name === "MBBS" ? "✚" : course.name === "BDS" ? "✦" : "▣"}</span>
       <span class="course-card__title">${esc(course.name)}</span>
@@ -69,7 +74,7 @@ function renderCourses() {
     </button>`).join("");
 
   grid.querySelectorAll("[data-course]").forEach(btn => {
-    btn.addEventListener("click", () => { pushLibraryHistory(); renderYears(data.courses[Number(btn.dataset.course)]); });
+    btn.addEventListener("click", () => { pushLibraryHistory(); renderYears(visibleCourses[Number(btn.dataset.course)]); });
   });
   if (back) {
     back.textContent = "← Back";
@@ -228,7 +233,90 @@ window.addEventListener("popstate", () => {
   }
 });
 
+
+const VISIT_API = API_BASE;
+let activeVisitId = "";
+let activeVisitStart = 0;
+function makeVisitId() {
+  return (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+}
+async function visitRequest(path, payload, keepalive=false) {
+  return fetch(`${VISIT_API}${path}`, {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload), cache: "no-store", keepalive
+  });
+}
+async function startStudentVisit(name, course) {
+  activeVisitId = makeVisitId();
+  activeVisitStart = Date.now();
+  const payload = {sessionId:activeVisitId, name, course};
+  try {
+    const response = await visitRequest("/api/visit/start", payload);
+    if (!response.ok) {
+      const result = await response.json().catch(()=>({}));
+      console.warn("Student tracking could not start:", result.error || response.status);
+    }
+  } catch (error) { console.warn("Student tracking unavailable:", error); }
+  sessionStorage.setItem("thanos_student", JSON.stringify({name, course, sessionId:activeVisitId, startedAt:activeVisitStart}));
+  const leave = () => {
+    if (!activeVisitId) return;
+    const payload = JSON.stringify({sessionId:activeVisitId});
+    try {
+      if (navigator.sendBeacon) {
+        const blob = new Blob([payload], {type:"application/json"});
+        navigator.sendBeacon(`${VISIT_API}/api/visit/end`, blob);
+      } else {
+        visitRequest("/api/visit/end", {sessionId:activeVisitId}, true);
+      }
+    } catch (_) {}
+  };
+  window.addEventListener("pagehide", leave);
+  window.addEventListener("beforeunload", leave);
+  setInterval(() => {
+    if (activeVisitId && document.visibilityState === "visible") {
+      visitRequest("/api/visit/ping", {sessionId:activeVisitId}).catch(()=>{});
+    }
+  }, 20000);
+}
+function setupStudentLogin() {
+  const form = byId("student-login-form");
+  const courseSelect = byId("student-course");
+  if (!form || !courseSelect) return;
+  courseSelect.innerHTML = `<option value="">Course select karein</option>` +
+    data.courses.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+  const existing = (()=>{try{return JSON.parse(sessionStorage.getItem("thanos_student")||"null")}catch{return null}})();
+  if (existing?.name && existing?.course && data.courses.some(c=>c.id===existing.course)) {
+    byId("student-name").value = existing.name;
+    courseSelect.value = existing.course;
+  }
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const name = byId("student-name").value.trim();
+    const courseId = courseSelect.value;
+    const selectedCourse = data.courses.find(c=>c.id===courseId);
+    if (!name || !selectedCourse) {
+      byId("student-login-msg").textContent = "Naam aur course dono select karein.";
+      return;
+    }
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    button.textContent = "Opening library…";
+    await startStudentVisit(name, selectedCourse.name);
+    byId("student-login").classList.add("hidden");
+    byId("student-library").classList.remove("hidden");
+    renderCourses();
+    button.disabled = false;
+    button.textContent = "Login & Continue →";
+  });
+  if (existing?.name && existing?.course && data.courses.some(c=>c.id===existing.course)) {
+    // Requiring a new login each tab/session gives the admin a new visit record.
+    sessionStorage.removeItem("thanos_student");
+    byId("student-name").value = existing.name;
+    courseSelect.value = existing.course;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   await loadData();
-  renderCourses();
+  setupStudentLogin();
 });

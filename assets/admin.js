@@ -133,6 +133,43 @@ function allCounts() {
   return { subjects, chapters, lectures };
 }
 
+
+function formatVisitTime(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString("en-IN", {dateStyle:"medium", timeStyle:"short"});
+}
+function formatDuration(value) {
+  const seconds = Math.max(0, Number(value) || 0);
+  const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
+  return h ? `${h}h ${m}m` : m ? `${m}m ${s}s` : `${s}s`;
+}
+async function loadVisits() {
+  const rows = $("visit-rows");
+  const summary = $("visit-summary");
+  if (!rows || !summary) return;
+  rows.innerHTML = '<tr><td colspan="7">Loading student visits…</td></tr>';
+  try {
+    const result = await request("/api/visits");
+    const visits = result.visits || [];
+    const active = visits.filter(v => v.status === "active").length;
+    summary.textContent = `${visits.length} total sessions · ${active} currently active`;
+    rows.innerHTML = visits.length ? visits.map(v => `
+      <tr>
+        <td><strong>${esc(v.student_name)}</strong><small class="visit-id">${esc(v.session_id)}</small></td>
+        <td>${esc(v.course)}</td>
+        <td>${esc(formatVisitTime(v.started_at))}</td>
+        <td>${esc(formatVisitTime(v.last_seen_at))}</td>
+        <td>${esc(formatVisitTime(v.ended_at))}</td>
+        <td><strong>${esc(formatDuration(v.duration_seconds))}</strong></td>
+        <td><span class="badge ${v.status === "active" ? "published" : "ended"}">${esc(v.status)}</span></td>
+      </tr>`).join("") : '<tr><td colspan="7">Abhi koi student visit record nahi hai.</td></tr>';
+  } catch (error) {
+    summary.textContent = "Student tracking data load nahi hua.";
+    rows.innerHTML = `<tr><td colspan="7">${esc(error.message)} — Worker deploy karein aur D1 mein student_visits table banayein.</td></tr>`;
+  }
+}
+
 function renderAll() {
   const counts = allCounts();
   $("stat-courses").textContent = data.courses.length;
@@ -144,6 +181,7 @@ function renderAll() {
   refreshDependent();
   renderManageLists();
   renderLectures();
+  loadVisits();
 }
 
 function refreshDependent() {
@@ -306,6 +344,7 @@ function renderLectures() {
   });
 }
 $("lecture-search").oninput = renderLectures;
+if ($("refresh-visits")) $("refresh-visits").onclick = loadVisits;
 
 function editLectureById(id) {
   for (const c of data.courses) for (const y of (c.years || [])) for (const s of (y.subjects || [])) for (const t of (s.teachers || [])) for (const ch of (t.chapters || [])) {

@@ -165,3 +165,30 @@ textarea{resize:vertical}
 
 /* Teacher hierarchy cards */
 #teacher-list{margin-top:12px}
+
+
+/* Student sign-in */
+.student-login-wrap{max-width:560px;margin:42px auto 56px;padding:0 22px}
+.student-login-card{background:#fff;border:1px solid #e2e8f0;border-radius:26px;padding:30px;box-shadow:0 18px 50px rgba(20,40,80,.07)}
+.student-login-card h1{font-family:Manrope,sans-serif;font-size:clamp(28px,5vw,38px);line-height:1.15;color:#1c2f4f;margin:12px 0}
+.student-login-card p{color:#7b8798;line-height:1.65;margin:0 0 22px}
+.student-login-card label{display:block;font-weight:700;color:#46546b;margin:16px 0}
+.student-login-card input,.student-login-card select{display:block;width:100%;box-sizing:border-box;margin-top:8px;border:1px solid #dce3ed;border-radius:13px;padding:14px 15px;background:#f9fbff;color:#1c2f4f;font:inherit}
+.student-login-card small{display:block;margin-top:16px;color:#8b95a5;line-height:1.5}
+.student-login-card .form-msg{margin:10px 0 0}
+.student-login-card button:disabled{opacity:.65}
+.hidden{display:none!important}
+
+/* Admin visit analytics */
+.student-analytics{margin:22px 0}
+.analytics-summary{font-weight:700;color:#4c6edb;background:#f1f5ff;border-radius:12px;padding:12px 14px;margin:12px 0}
+.table-wrap{width:100%;overflow-x:auto}
+.visits-table{width:100%;border-collapse:collapse;min-width:780px;font-size:13px}
+.visits-table th,.visits-table td{text-align:left;padding:12px 10px;border-bottom:1px solid #e8edf4;vertical-align:top}
+.visits-table th{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#7a8799}
+.visits-table td{color:#263954}
+.visits-table small{display:block}
+.visit-id{max-width:125px;overflow:hidden;text-overflow:ellipsis;color:#9aa3b2;font-size:10px}
+.badge.ended{background:#edf0f5;color:#657187}
+.analytics-note{font-size:12px;line-height:1.6;margin-top:12px}
+@media(max-width:600px){.student-login-wrap{margin:24px auto 38px;padding:0 16px}.student-login-card{padding:23px;border-radius:20px}}
