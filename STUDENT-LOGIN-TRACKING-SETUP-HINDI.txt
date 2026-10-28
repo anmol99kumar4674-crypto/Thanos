@@ -1,0 +1,41 @@
+THANOS STUDENT LOGIN + VISIT TRACKING SETUP (HINDI)
+
+ZIP upload karne ke baad ye steps zaroor karein:
+
+1) GitHub repository mein ZIP extract karke files ko unki same locations par replace karein:
+   - index.html
+   - admin.html
+   - assets/app.js
+   - assets/admin.js
+   - assets/style.css
+   - worker/worker.js
+   - worker/schema.sql
+   Commit changes karein.
+
+2) Cloudflare Worker:
+   Cloudflare Dashboard > Workers & Pages > thanos-api > Edit code.
+   ZIP ke worker/worker.js ka poora code Worker mein paste karke Deploy karein.
+   ADMIN_KEY secret ko delete/change na karein; existing secret rehne dein.
+
+3) D1 database:
+   Cloudflare Dashboard > D1 > thanos-db > Console.
+   worker/schema-student-tracking.sql ke andar ka SQL run karein.
+   Ye sirf student_visits table aur indexes banata hai; app_data/course data delete nahi karta.
+   (Full schema.sql bhi table banata hai, lekin existing app_data ko overwrite nahi karta.)
+
+4) GitHub Pages deploy hone ke baad website ko hard refresh karein / Chrome mein site data/cache refresh karein.
+
+Kya milega:
+- Student ko naam aur course select karke enter karne ka login form.
+- Admin panel > Student visits mein student name, course, login time, last activity, exit time,
+  duration aur active/ended status.
+- Records Cloudflare D1 mein store hote hain; Admin Key required hai records dekhne ke liye.
+
+IMPORTANT LIMITATIONS / PRIVACY:
+- Name + course form real authentication nahi hai. Koi bhi kisi aur naam se enter kar sakta hai.
+  Agar verified student identity chahiye to password/OTP ya approved student ID system chahiye.
+- Website sirf browser se visible activity track kar sakti hai. Agar phone/browser force-close ho,
+  internet band ho, ya browser sendBeacon request drop kare, exact exit time unavailable ho sakta hai;
+  last activity time approximate signal hai.
+- Students ko tracking ke baare mein clear notice dena chahiye. Sirf learning-site analytics ke liye
+  zaroori data rakhein aur access Admin Key se protect rakhein.

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="hi">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thanos Admin</title><link rel="stylesheet" href="assets/style.css?v=teacher-level-1"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thanos Admin</title><link rel="stylesheet" href="assets/style.css?v=student-tracking-2"></head>
 <body class="admin-body">
 <header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">S</span><span>Thanos<small>ADMIN CONSOLE</small></span></a><nav><a href="index.html">View Website ↗</a></nav></header>
 <main class="admin-wrap">
@@ -8,6 +8,12 @@
 <section id="dashboard" class="hidden">
 <div class="admin-heading"><div><span class="eyebrow">CONTENT MANAGEMENT</span><h1>Admin dashboard</h1><p class="muted">Course → Year → Subject → Teacher → Chapter → Lecture</p></div><button id="logout-btn" class="btn btn-light">Log out</button></div>
 <div class="stats-row"><div class="stat-card"><span>Courses</span><strong id="stat-courses">0</strong></div><div class="stat-card"><span>Subjects</span><strong id="stat-subjects">0</strong></div><div class="stat-card"><span>Chapters</span><strong id="stat-chapters">0</strong></div><div class="stat-card"><span>Lectures</span><strong id="stat-lectures">0</strong></div></div>
+<section class="panel panel-wide student-analytics">
+  <div class="panel-title"><div><span class="eyebrow">STUDENT ANALYTICS</span><h2>Student visits</h2><p class="muted">Login time, last activity, exit time aur website par bitaya gaya time.</p></div><button type="button" class="btn btn-light" id="refresh-visits">Refresh</button></div>
+  <div class="analytics-summary" id="visit-summary">Loading student visit data…</div>
+  <div class="table-wrap"><table class="visits-table"><thead><tr><th>Student</th><th>Course</th><th>Login time</th><th>Last active</th><th>Exit time</th><th>Time on site</th><th>Status</th></tr></thead><tbody id="visit-rows"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
+  <p class="muted analytics-note">Time is approximate. If browser/app closes abruptly or internet disconnects, exit time may be unavailable; last activity is used to estimate the session.</p>
+</section>
 <div class="admin-grid">
 <section class="panel"><div class="panel-title"><div><span class="eyebrow">STEP 01</span><h2>Course & Year</h2></div></div>
 <form id="course-form" class="stack-form"><label>Course name<input id="course-name" required placeholder="e.g. MBBS"></label><label>Short description<input id="course-desc" placeholder="Optional description"></label><button class="btn btn-primary" type="submit">＋ Add Course</button></form>
@@ -39,4 +45,4 @@
 </div>
 <p class="security-note">🔒 Write actions are checked by your Cloudflare Worker. Never place your admin key in public source code.</p>
 </section>
-</main><div id="toast" class="toast"></div><script src="assets/admin.js?v=teacher-level-1"></script></body></html>
+</main><div id="toast" class="toast"></div><script src="assets/admin.js?v=student-tracking-2"></script></body></html>
