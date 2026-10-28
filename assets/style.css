@@ -197,3 +197,10 @@ textarea{resize:vertical}
 .admin-menu{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 22px}
 .admin-menu .btn{min-height:44px}
 #analytics-view .student-analytics{margin-top:0}
+
+/* Student course switch control */
+#change-course-btn { white-space: nowrap; }
+@media (max-width: 520px) {
+  .catalogue-actions { flex-wrap: wrap; justify-content: flex-end; }
+  #change-course-btn { padding: 9px 12px; font-size: 12px; }
+}

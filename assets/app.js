@@ -289,6 +289,21 @@ function setupStudentLogin() {
     byId("student-name").value = existing.name;
     courseSelect.value = existing.course;
   }
+  const changeCourseBtn = byId("change-course-btn");
+  if (changeCourseBtn) {
+    changeCourseBtn.addEventListener("click", () => {
+      const profile = (() => { try { return JSON.parse(localStorage.getItem("thanos_student_profile") || "null"); } catch { return null; } })();
+      if (profile?.name) byId("student-name").value = profile.name;
+      if (profile?.course) courseSelect.value = profile.course;
+      byId("student-library").classList.add("hidden");
+      byId("student-login").classList.remove("hidden");
+      changeCourseBtn.classList.add("hidden");
+      const submitButton = form.querySelector('button[type="submit"]');
+      if (submitButton) submitButton.textContent = "Update course & continue →";
+      byId("student-login-msg").textContent = "Naya course select karke continue karein.";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
   form.addEventListener("submit", async event => {
     event.preventDefault();
     const name = byId("student-name").value.trim();
@@ -301,6 +316,11 @@ function setupStudentLogin() {
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
     button.textContent = "Opening library…";
+    const previousProfile = (() => { try { return JSON.parse(localStorage.getItem("thanos_student_profile") || "null"); } catch { return null; } })();
+    if (activeVisitId && previousProfile?.courseName && previousProfile.courseName !== selectedCourse.name) {
+      try { await visitRequest("/api/visit/end", {sessionId: activeVisitId}, true); } catch {}
+      activeVisitId = null;
+    }
     localStorage.setItem("thanos_student_profile", JSON.stringify({name, course: courseId, courseName: selectedCourse.name, savedAt: Date.now()}));
     await startStudentVisit(name, selectedCourse.name);
     byId("student-login").classList.add("hidden");
@@ -308,6 +328,8 @@ function setupStudentLogin() {
     renderCourses();
     button.disabled = false;
     button.textContent = "Login & Continue →";
+    byId("student-login-msg").textContent = "";
+    if (changeCourseBtn) changeCourseBtn.classList.remove("hidden");
   });
   if (existing?.name && existing?.course && data.courses.some(c=>c.id===existing.course)) {
     byId("student-name").value = existing.name;
@@ -318,6 +340,7 @@ function setupStudentLogin() {
       byId("student-login").classList.add("hidden");
       byId("student-library").classList.remove("hidden");
       renderCourses();
+      if (changeCourseBtn) changeCourseBtn.classList.remove("hidden");
     });
   }
 }
