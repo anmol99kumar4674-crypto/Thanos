@@ -148,7 +148,7 @@ async function loadVisits() {
   const rows = $("visit-rows");
   const summary = $("visit-summary");
   if (!rows || !summary) return;
-  rows.innerHTML = '<tr><td colspan="7">Loading student visits…</td></tr>';
+  rows.innerHTML = '<tr><td colspan="8">Loading student visits…</td></tr>';
   try {
     const result = await request("/api/visits");
     const visits = result.visits || [];
@@ -163,10 +163,28 @@ async function loadVisits() {
         <td>${esc(formatVisitTime(v.ended_at))}</td>
         <td><strong>${esc(formatDuration(v.duration_seconds))}</strong></td>
         <td><span class="badge ${v.status === "active" ? "published" : "ended"}">${esc(v.status)}</span></td>
-      </tr>`).join("") : '<tr><td colspan="7">Abhi koi student visit record nahi hai.</td></tr>';
+        <td><button type="button" class="mini-btn danger" data-delete-visit="${esc(v.session_id)}">Delete</button></td>
+      </tr>`).join("") : '<tr><td colspan="8">Abhi koi student visit record nahi hai.</td></tr>';
+    rows.querySelectorAll("[data-delete-visit]").forEach(button => {
+      button.addEventListener("click", async () => {
+        const sessionId = button.dataset.deleteVisit;
+        if (!confirm("Is student visit ka record permanently delete karna hai?")) return;
+        button.disabled = true;
+        button.textContent = "Deleting…";
+        try {
+          await request("/api/visits/" + encodeURIComponent(sessionId), { method: "DELETE" });
+          toast("Student visit record deleted");
+          await loadVisits();
+        } catch (error) {
+          toast("Delete failed: " + error.message);
+          button.disabled = false;
+          button.textContent = "Delete";
+        }
+      });
+    });
   } catch (error) {
     summary.textContent = "Student tracking data load nahi hua.";
-    rows.innerHTML = `<tr><td colspan="7">${esc(error.message)} — Worker deploy karein aur D1 mein student_visits table banayein.</td></tr>`;
+    rows.innerHTML = `<tr><td colspan="8">${esc(error.message)} — Worker deploy karein aur D1 mein student_visits table banayein.</td></tr>`;
   }
 }
 
