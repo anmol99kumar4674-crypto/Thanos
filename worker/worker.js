@@ -12,7 +12,7 @@ function json(data, status=200, origin="*") {
   return new Response(JSON.stringify(data), { status, headers: {
     "content-type":"application/json; charset=utf-8",
     "access-control-allow-origin": origin || "*",
-    "access-control-allow-methods":"GET,POST,PUT,OPTIONS",
+    "access-control-allow-methods":"GET,POST,PUT,DELETE,OPTIONS",
     "access-control-allow-headers":"Content-Type,X-Admin-Key",
     "cache-control":"no-store"
   }});
@@ -24,7 +24,7 @@ export default {
    const origin = env.CORS_ORIGIN || "*";
    const url = new URL(request.url);
    if (request.method === "OPTIONS") return new Response(null,{status:204,headers:{
-     "access-control-allow-origin":origin,"access-control-allow-methods":"GET,POST,PUT,OPTIONS",
+     "access-control-allow-origin":origin,"access-control-allow-methods":"GET,POST,PUT,DELETE,OPTIONS",
      "access-control-allow-headers":"Content-Type,X-Admin-Key","access-control-max-age":"86400"
    }});
    if (!env.DB) return json({error:"D1 database binding DB is not configured"},500,origin);
@@ -78,6 +78,16 @@ export default {
        await env.DB.prepare("UPDATE student_visits SET ended_at=?, last_seen_at=?, duration_seconds=MAX(0, CAST((julianday(?) - julianday(started_at))*86400 AS INTEGER)), status='ended' WHERE session_id=? AND status='active'").bind(now,now,now,sessionId).run();
        return json({ok:true},200,origin);
      } catch(e) { return json({error:"Visit tracking table missing"},500,origin); }
+   }
+   if (url.pathname.startsWith("/api/visits/") && request.method === "DELETE") {
+     if (!adminOK(request,env)) return json({error:"Unauthorized admin key"},401,origin);
+     const sessionId = decodeURIComponent(url.pathname.slice("/api/visits/".length)).trim().slice(0,100);
+     if (!sessionId) return json({error:"sessionId required"},400,origin);
+     try {
+       const result = await env.DB.prepare("DELETE FROM student_visits WHERE session_id = ?").bind(sessionId).run();
+       if (!result.meta || result.meta.changes === 0) return json({error:"Student visit record not found"},404,origin);
+       return json({ok:true,deleted:sessionId},200,origin);
+     } catch(e) { return json({error:"Could not delete visit record. Check student_visits table."},500,origin); }
    }
    if (url.pathname === "/api/visits" && request.method === "GET") {
      if (!adminOK(request,env)) return json({error:"Unauthorized admin key"},401,origin);
